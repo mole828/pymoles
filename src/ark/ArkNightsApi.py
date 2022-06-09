@@ -48,15 +48,25 @@ def inquiry(token: str, page: int, path: str = "gacha"):
         loguru.logger.info((token, page, response.text))
     except requests.exceptions.ChunkedEncodingError:
         loguru.logger.info((token, page, response.text))
-
-
+    except json.decoder.JSONDecodeError:
+        loguru.logger.info((token, page, response.text))
+    return []
 
 def inquiry2iter(token: str, path: str = "gacha"):
     for page in range(1, 11):
         gs = inquiry(token=token, page=page, path=path)
         for g in gs:
-            if 'payTime' in g.keys():
-                g['ts'] = g['payTime']
+            try:
+                if 'payTime' in g.keys():
+                    g['ts'] = g['payTime']
+            except AttributeError as e:
+                loguru.logger.info({
+                    'function:': f'inquiry2iter(token: str = {token}, path: str = {path}):',
+                    'e': e,
+                    'g': g,
+                    'type(g)': type(g),
+                })
+                return
             yield g
         if len(gs) != 10:
             break

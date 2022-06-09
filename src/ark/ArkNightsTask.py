@@ -4,10 +4,7 @@ import pymongo
 import requests
 from pymongo.collection import Collection
 
-map = {
-    'roundStart': 0,
-    'docsResp': {},
-}
+
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")['moles']
 from src.ark.ArkNightsApi import basic, paths, inquiry2iter
@@ -45,6 +42,7 @@ def count(gacha: dict):
             d[char['rarity']] += 1  # delete before test
             d['rar'][char['rarity']] += 1
             d['sum'] += 1
+
     return True
 
 
@@ -57,14 +55,18 @@ def findNew(doc: dict, path: str = 'gacha'):
             collection.insert_one(d)
             if path == 'gacha':
                 count(d)
-            loguru.logger.info({
-                'insert': d,
-                'doc': doc
-            })
+            # loguru.logger.info({
+            #     'insert': d,
+            #     'doc': doc
+            # })
         else:
             return d
 
-
+beat = {
+    'roundStart': {},
+    'beat': {},
+    'docsResp': {},
+}
 
 def findNewLoop():
     loguru.logger.info(('client.list_collection_names()', client.list_collection_names()))
@@ -72,29 +74,38 @@ def findNewLoop():
     dt: int = 5
     time.sleep(dt)
     while True:
-        map['roundStart'] = {
+        beat['roundStart'] = {
             'timestamp': int(time.time()),
             'strftime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         }
-        for doc in client['doctor'].find():
-            try:
-                bas = basic(token=doc['token'])
-                map['docsResp'][doc['nickName']] = {
-                    'time': int(time.time()),
-                    'basic': bas,
+        try:
+            for doc in client['doctor'].find():
+                beat['beat'] = {
+                    'timestamp': int(time.time()),
+                    'strftime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 }
-                if bas['status'] == 3:
-                    continue
-                for path in paths:
-                    dib = findNew(doc, path)
-                    map['docsResp'][doc['nickName']][path] = dib
-                    time.sleep(dt)
-                # loguru.logger.info(doc)
-            except ConnectionError as e:
-                map['error'] = e.__str__()
-                loguru.logger.error(e)
-            except requests.exceptions.ConnectionError as e:
-                loguru.logger.error(e)
+                try:
+                    bas = basic(token=doc['token'])
+                    beat['docsResp'][doc['nickName']] = {
+                        'time': int(time.time()),
+                        'basic': bas,
+                    }
+                    if bas['status'] == 3:
+                        continue
+                    for path in paths:
+                        dib = findNew(doc, path)
+                        beat['docsResp'][doc['nickName']][path] = dib
+                        time.sleep(dt)
+                    # loguru.logger.info(doc)
+                except ConnectionError as e:
+                    beat['error'] = e.__str__()
+                    loguru.logger.error(e)
+                except requests.exceptions.ConnectionError as e:
+                    loguru.logger.error(e)
+                except requests.exceptions.ReadTimeout as e:
+                    loguru.logger.error(e)
+        except pymongo.errors.CursorNotFound as e:
+            loguru.logger.error(e)
         dt = min(dt*2, 30)
 
 

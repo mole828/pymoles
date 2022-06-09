@@ -7,14 +7,6 @@ from starlette.staticfiles import StaticFiles
 from src.config import app, mongo
 
 
-@app.get('/mfs/list')
-async def listFile():
-    arr = await mongo.client.moles.fs.files.find().to_list(1000000)
-    for a in arr:
-        a['_id'] = a['_id'].__str__()
-    return arr
-
-
 @app.get('/var/get/{key}')
 async def varGet(key: str):
     v = await mongo.client.moles.var.find_one({'key': key})
@@ -41,8 +33,6 @@ async def dockerList():
 from src.ark.service import router as ark
 app.include_router(ark, prefix="/ark")
 
-from src.chat.service import app as chat
-app.include_router(chat, prefix='/chat')
 
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
@@ -52,6 +42,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+from enum import IntEnum,Enum
+class emmm(IntEnum):
+    Mole = 0
+    MistEO = 1
+@app.get("/test/{data}")
+async def testFunction(data: emmm):
+    return f"{str(data)} is {data}"
+
 
 if __name__ == '__main__':
     import uvicorn

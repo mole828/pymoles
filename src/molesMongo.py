@@ -9,6 +9,7 @@ class molesMongo:
         self.client = AsyncIOMotorClient('127.0.0.1', 27017)
         self.bucket = AsyncIOMotorGridFSBucket(self.client.moles)
 
+
     def __init__(self, app) -> None:
         app.add_event_handler('startup', self.connect)
 
